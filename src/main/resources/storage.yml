@@ -1,3 +1,6 @@
-Mongo:
-  URI: mongodb://localhost:27017
-  Database: auth
+Database:
+  Type: MongoDB # Type of database to use (MongoDB, MySQL)
+
+  Mongo:
+    URI: mongodb://localhost:27017
+    Database: auth

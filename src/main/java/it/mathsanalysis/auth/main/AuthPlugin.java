@@ -25,21 +25,43 @@ package it.mathsanalysis.auth.main;
  * SOFTWARE.
  */
 
+import com.google.inject.Inject;
+import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
+import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
+import com.velocitypowered.api.plugin.Plugin;
+import com.velocitypowered.api.plugin.annotation.DataDirectory;
+import com.velocitypowered.api.proxy.ProxyServer;
 import it.mathsanalysis.auth.Auth;
-import org.bukkit.plugin.java.JavaPlugin;
+import org.slf4j.Logger;
 
-public class AuthPlugin extends JavaPlugin {
+import java.nio.file.Path;
+
+
+@Plugin(id = "auth", name = "Auth", version = "0.0.1", authors = {"MathsAnalysis"})
+public class AuthPlugin {
 
     private Auth provider;
 
-    @Override
-    public void onEnable() {
-        this.provider = new Auth(this);
+    private final ProxyServer server;
+    private final Logger logger;
+    private final Path dataDirectory;
+
+    @Inject
+    public AuthPlugin(ProxyServer server, Logger logger, @DataDirectory Path dataDirectory) {
+        this.server = server;
+        this.logger = logger;
+        this.dataDirectory = dataDirectory;
+    }
+
+    @Subscribe
+    public void onProxyInitialization(ProxyInitializeEvent event) {
+        this.provider = new Auth(server, logger, dataDirectory);
         this.provider.start();
     }
 
-    @Override
-    public void onDisable() {
+    @Subscribe
+    public void onProxyShutdown(ProxyShutdownEvent event) {
         this.provider.stop();
     }
 }

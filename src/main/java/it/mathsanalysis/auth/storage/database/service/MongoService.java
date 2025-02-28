@@ -1,4 +1,4 @@
-package it.mathsanalysis.auth.storage.provider;
+package it.mathsanalysis.auth.storage.database.service;
 
 /*
  * MIT License
@@ -25,24 +25,38 @@ package it.mathsanalysis.auth.storage.provider;
  * SOFTWARE.
  */
 
-import it.mathsanalysis.auth.storage.database.DatabaseManager;
-import it.mathsanalysis.auth.storage.user.core.AuthPlayerManager;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import it.mathsanalysis.auth.Auth;
+import it.mathsanalysis.auth.storage.database.structure.IDatabase;
+import lombok.Getter;
+import org.bson.Document;
 
-public class StoragerProvider {
+@Getter
+public class MongoService implements IDatabase {
 
-    private DatabaseManager databaseManager;
-    private AuthPlayerManager playerManager;
+    private MongoClient client;
+    private MongoDatabase database;
+    private MongoCollection<Document> users;
 
-    public void start(){
-        this.databaseManager = new DatabaseManager();
-        this.databaseManager.connect();
+    @Override
+    public void connect() {
+        String URI = Auth.get().getStorageConfig().getString("cMongo.URI", "mongodb://localhost:27017");
+        String database = Auth.get().getStorageConfig().getString("Database.Mongo.Database", "auth");
 
-        this.playerManager = new AuthPlayerManager();
-        this.playerManager.start();
+        this.client = MongoClients.create(URI);
+        this.database = this.client.getDatabase(database);
+        this.users = this.database.getCollection("users");
     }
 
-    public void stop(){
-        this.playerManager.stop();
-        this.databaseManager.disconnect();
+    @Override
+    public void disconnect() {
+        if (this.client != null){
+            this.database = null;
+            this.users = null;
+            this.client.close();
+        }
     }
 }

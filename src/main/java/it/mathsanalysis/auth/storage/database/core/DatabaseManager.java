@@ -1,4 +1,4 @@
-package it.mathsanalysis.auth.storage.database;
+package it.mathsanalysis.auth.storage.database.core;
 
 /*
  * MIT License
@@ -25,43 +25,59 @@ package it.mathsanalysis.auth.storage.database;
  * SOFTWARE.
  */
 
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import it.mathsanalysis.auth.Auth;
-import org.bson.Document;
+import it.mathsanalysis.auth.manager.Manager;
+import it.mathsanalysis.auth.storage.database.service.MongoService;
+import it.mathsanalysis.auth.storage.database.service.MySQLService;
+import it.mathsanalysis.auth.storage.database.structure.IDatabase;
 
-public class DatabaseManager {
+import java.util.ArrayList;
+import java.util.List;
+
+public class DatabaseManager implements Manager {
 
     private static DatabaseManager INSTANCE;
 
-    private MongoClient client;
-    private MongoDatabase database;
-    private MongoCollection<Document> users;
+    private List<IDatabase> databases;
 
-    public void connect(){
+    @Override
+    public void start() {
         INSTANCE = this;
 
-        String URI = Auth.get().getStorageConfig().getString("Mongo.URI", "mongodb://localhost:27017");
-        String database = Auth.get().getStorageConfig().getString("Mongo.Database", "auth");
-
-        this.client = MongoClients.create(URI);
-        this.database = this.client.getDatabase(database);
-        this.users = this.database.getCollection("users");
+        registerDatabases();
     }
 
-    public void disconnect(){
-        if (INSTANCE != null && this.client != null){
-            this.database = null;
-            this.users = null;
-            this.client.close();
-            INSTANCE = null;
+    @Override
+    public void unregister() {
+        databases.forEach(IDatabase::disconnect);
+        INSTANCE = null;
+    }
+
+    private void registerDatabases(){
+        databases = new ArrayList<>();
+
+        databases.add(new MongoService());
+        databases.add(new MySQLService());
+
+        String type = Auth.get().getStorageConfig().getString("Database.Type", "MongoDB");
+        for (IDatabase database : databases) {
+            switch (type){
+                case "MongoDB"->{
+                    if (database instanceof MongoService service){
+                        service.connect();
+                    }
+                }
+                case "MySQL"->{
+                    if (database instanceof MySQLService service){
+                        service.connect();
+                    }
+                }
+            }
         }
     }
-
 
     public static DatabaseManager get(){
         return INSTANCE;
     }
+
 }

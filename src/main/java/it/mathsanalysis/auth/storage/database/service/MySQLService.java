@@ -1,4 +1,4 @@
-package it.mathsanalysis.auth.premium.provider;
+package it.mathsanalysis.auth.storage.database.service;
 
 /*
  * MIT License
@@ -25,18 +25,20 @@ package it.mathsanalysis.auth.premium.provider;
  * SOFTWARE.
  */
 
-import it.mathsanalysis.auth.premium.core.PremiumManager;
+import it.mathsanalysis.auth.storage.database.structure.IDatabase;
+import lombok.Getter;
 
-public class PremiumProvider {
+@Getter
+public class MySQLService implements IDatabase {
 
-    private PremiumManager premiumManager;
 
-    public void start(){
-        this.premiumManager = new PremiumManager();
-        this.premiumManager.start();
+    @Override
+    public void connect() {
+
     }
 
-    public void stop(){
-        this.premiumManager.stop();
+    @Override
+    public void disconnect() {
+
     }
 }

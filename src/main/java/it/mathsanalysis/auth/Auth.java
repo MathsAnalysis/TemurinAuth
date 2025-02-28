@@ -25,53 +25,66 @@ package it.mathsanalysis.auth;
  * SOFTWARE.
  */
 
+import com.velocitypowered.api.proxy.ProxyServer;
 import it.mathsanalysis.auth.config.ConfigFile;
-import it.mathsanalysis.auth.premium.provider.PremiumProvider;
-import it.mathsanalysis.auth.storage.provider.StoragerProvider;
+import it.mathsanalysis.auth.manager.Manager;
+import it.mathsanalysis.auth.premium.PremiumManager;
+import it.mathsanalysis.auth.storage.database.core.DatabaseManager;
+import it.mathsanalysis.auth.storage.user.core.AuthPlayerManager;
 import lombok.Getter;
 import lombok.Setter;
-import org.bukkit.plugin.java.JavaPlugin;
+import org.slf4j.Logger;
+
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
 public class Auth {
 
     private static Auth INSTANCE;
-    private JavaPlugin plugin;
 
-    private StoragerProvider storagerProvider;
-    private PremiumProvider premiumProvider;
+    private ProxyServer proxyServer;
+    private Logger logger;
 
+    private List<Manager> managers;
+
+    private Path dataDirectory;
     private ConfigFile storageConfig, configFile;
 
-    public Auth(JavaPlugin plugin){
-        this.plugin = plugin;
+    public Auth(ProxyServer proxyServer, Logger logger, Path dataDirectory) {
+        this.proxyServer = proxyServer;
+        this.logger = logger;
+        this.dataDirectory = dataDirectory;
     }
 
     public void start(){
         INSTANCE = this;
 
         registerConfig();
-        registerProvider();
+        registerAllManager();
     }
 
     public void stop(){
-        this.storagerProvider.stop();
-        this.premiumProvider.stop();
+        managers.forEach(Manager::unregister);
+        managers.clear();
         INSTANCE = null;
     }
 
     private void registerConfig() {
-        this.storageConfig = new ConfigFile("storage");
-        this.configFile = new ConfigFile("config");
+        this.storageConfig = new ConfigFile(dataDirectory, "storage");
+        this.configFile = new ConfigFile(dataDirectory, "config");
     }
 
-    private void registerProvider(){
-        this.storagerProvider = new StoragerProvider();
-        this.storagerProvider.start();
+    private void registerAllManager(){
+        managers = new ArrayList<>();
 
-        this.premiumProvider = new PremiumProvider();
-        this.premiumProvider.start();
+        managers.add(new DatabaseManager());
+        managers.add(new AuthPlayerManager());
+        managers.add(new PremiumManager());
+
+        managers.forEach(Manager::start);
     }
 
     public static Auth get(){

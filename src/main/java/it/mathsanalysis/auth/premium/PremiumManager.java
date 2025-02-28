@@ -1,4 +1,4 @@
-package it.mathsanalysis.auth.premium.core;
+package it.mathsanalysis.auth.premium;
 
 /*
  * MIT License
@@ -25,16 +25,20 @@ package it.mathsanalysis.auth.premium.core;
  * SOFTWARE.
  */
 
-public class PremiumManager {
+import it.mathsanalysis.auth.manager.Manager;
+
+public class PremiumManager implements Manager {
 
     private static PremiumManager INSTANCE;
 
+    @Override
     public void start(){
         INSTANCE = this;
 
     }
 
-    public void stop(){
+    @Override
+    public void unregister(){
         INSTANCE = null;
     }
 

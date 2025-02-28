@@ -27,11 +27,12 @@ package it.mathsanalysis.auth.storage.user.core;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.velocitypowered.api.proxy.Player;
 import it.mathsanalysis.auth.Auth;
+import it.mathsanalysis.auth.manager.Manager;
 import it.mathsanalysis.auth.storage.user.structure.AuthPlayer;
 import lombok.Getter;
 import lombok.Setter;
-import org.bukkit.entity.Player;
 
 import java.util.List;
 import java.util.Map;
@@ -41,7 +42,7 @@ import java.util.concurrent.TimeUnit;
 
 @Getter
 @Setter
-public class AuthPlayerManager {
+public class AuthPlayerManager implements Manager {
 
     private static AuthPlayerManager INSTANCE;
 
@@ -49,18 +50,20 @@ public class AuthPlayerManager {
     private Map<UUID, AuthPlayer> REGISTERED_PLAYERS;
 
 
+    @Override
     public void start(){
         INSTANCE = this;
 
         this.AUTH_PLAYERS = Caffeine.newBuilder()
-                .expireAfterAccess(Auth.get().getConfigFile().getInt("Settings.auth-session"), TimeUnit.SECONDS)
+                .expireAfterAccess(Auth.get().getConfigFile().getInt("Settings.auth-session", 90), TimeUnit.SECONDS)
                 .build();
 
         this.REGISTERED_PLAYERS = new ConcurrentHashMap<>();
 
     }
 
-    public void stop() {
+    @Override
+    public void unregister() {
         this.AUTH_PLAYERS.invalidateAll();
         this.REGISTERED_PLAYERS.clear();
         INSTANCE = null;

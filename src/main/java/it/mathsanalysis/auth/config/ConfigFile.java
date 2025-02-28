@@ -1,104 +1,101 @@
 package it.mathsanalysis.auth.config;
 
-/*
- * MIT License
- * Copyright (c) 2025 MathsAnalysis
- *
- * Created on 28/02/2025.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
+import org.spongepowered.configurate.CommentedConfigurationNode;
+import org.spongepowered.configurate.loader.ConfigurationLoader;
+import org.spongepowered.configurate.serialize.SerializationException;
+import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 
-import it.mathsanalysis.auth.Auth;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.jetbrains.annotations.NotNull;
-
-import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
-public class ConfigFile extends YamlConfiguration {
+public class ConfigFile {
 
-    private final File file;
+    private final String fileName;
+    private final Path dataDirectory;
+    private final Path filePath;
+    private final ConfigurationLoader<CommentedConfigurationNode> loader;
+    private CommentedConfigurationNode rootNode;
 
 
-    public ConfigFile(@NotNull String nameFile){
-        this.file = new File(nameFile + ".yml");
+    public ConfigFile(Path dataDirectory, String fileName) {
+        this.dataDirectory = dataDirectory;
+        this.fileName = fileName;
+        this.filePath = dataDirectory.resolve(fileName + ".yml");
+        this.loader = YamlConfigurationLoader.builder().path(filePath).build();
 
-        if(!file.exists()){
+        createFileIfNotExists();
+        load();
+    }
+
+
+    private void createFileIfNotExists() {
+        if (Files.notExists(dataDirectory)) {
             try {
-                createConfigFile();
-            } catch (Exception e) {
-                e.printStackTrace();
+                Files.createDirectories(dataDirectory);
+            } catch (IOException ex) {
+                ex.printStackTrace();
             }
         }
 
-        this.loadFile();
+        if (Files.notExists(filePath)) {
+            try (InputStream stream = this.getClass().getClassLoader().getResourceAsStream(fileName + ".yml")) {
+                if (stream == null) {
+                    throw new IllegalStateException("File di configurazione di default non trovato nelle risorse.");
+                }
+                Files.copy(stream, filePath);
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
     }
 
 
-    private void loadFile(){
+    public void load() {
         try {
-
-            if(!file.exists()){
-                createConfigFile();
-            }
-
-            this.load(file);
-        } catch (Exception e) {
-            e.printStackTrace();
+            rootNode = loader.load();
+        } catch (IOException ex) {
+            ex.printStackTrace();
         }
     }
 
-    public void saveFile() {
+    public void save() {
         try {
-            if(!file.exists()){
-                createConfigFile();
-            }
-
-            this.save(this.file);
-        } catch (Exception e) {
-            e.printStackTrace();
+            loader.save(rootNode);
+        } catch (IOException ex) {
+            ex.printStackTrace();
         }
     }
 
-    public void reload() {
+    public String getString(String path, String def) {
+        return rootNode.node(path).getString(def);
+    }
+
+    public int getInt(String path, int def) {
+        return rootNode.node(path).getInt(def);
+    }
+
+    public boolean getBoolean(String path, boolean def) {
+        return rootNode.node(path).getBoolean(def);
+    }
+
+    public double getDouble(String path, double def) {
+        return rootNode.node(path).getDouble(def);
+    }
+
+    public List<String> getStringList(String path) {
         try {
-            if(!file.exists()){
-                createConfigFile();
-            }
-
-            loadFile();
-        } catch (Exception e) {
+            return rootNode.node(path).getList(String.class);
+        } catch (SerializationException e) {
             e.printStackTrace();
+            return null;
         }
     }
 
-
-    public String getString(@NotNull String path, String def) {
-        return super.getString(path, def);
-    }
-
-    private void createConfigFile() throws IOException {
-        Path configFilePath = Path.of(Auth.get().getPlugin().getDataFolder().getPath(), file.getName());
-        Files.createFile(configFilePath);
+    public CommentedConfigurationNode getNode(String path) {
+        return rootNode.node(path);
     }
 
 }
